@@ -1,56 +1,59 @@
-import sqlite3;
-import uuid;
-import datetime as dt;
-from databases   import Database, SQLResults, SQLStatement, SQLResult;
-from user        import User, GenderType;
-from respository import Respository;
+import datetime as dt
+from accounts.databases.database import Database
+from accounts.databases.sqlresult import SQLResult
+from accounts.data.user import User, GenderType
+from accounts.repositories.repository import Repository
 
 
-
-class UserAccount(Respository):
+class UserRepository(Repository):
 
     def __init__(self, **kwargs):
-        kwargs['name'] = 'tbl_users';
-        super().__init__(**kwargs);
-        if(self.Database != None):
-            self.Database.Execute('''CREATE TABLE IF NOT EXISTS tbl_users
+        kwargs['name'] = 'tbl_users'
+        super().__init__(**kwargs)
+        if self.Database is not None:
+            self.Database.Execute('''CREATE TABLE IF NOT EXISTS {0} 
                                         (user_uuid text PRIMARY KEY NOT NULL,
                                          lastname text NOT NULL,
                                          firstname text NOT NULL,
                                          email text NOT NULL,                                        
                                          gender text,
+                                         phone_number text,
                                          date_registered text NOT NULL,
-                                         last_update_date text NOT NULL)''');
-            self.__Users  =  None;
+                                         last_update_date text NOT NULL)'''.format(self.Name))
+
+            self.Database.Commit()
+            self.__Users  = list()
 
     def Exists(self, user_uuid: str):
-        status  =  False;
-        if(type(user_uuid) == str):
-            stmt  =  self.Database.Execute("SELECT *FROM tbl_users WHERE (user_uuid=? OR email==?)", (user_uuid, user_uuid));
-            if(stmt.RowCount > 0):
-                status   =  True;
-        return status;
+        status  = False
+        if type(user_uuid) == str:
+            stmt  =  self.Database.Execute("SELECT *FROM tbl_users WHERE (user_uuid=? OR email==?)", (user_uuid, user_uuid))
+            if stmt.RowCount > 0:
+                status   = True
+        return status
 
-    def Create(self, user: User):
+    def Create(self, user: User) -> User:
+        result  = None
+        if isinstance(user, User):
+            if self.Exists(user.Email) is not True:
+                User.UUID  = self.NextUUID
+                email = user.Email.lower().strip()
+                sql  = "INSERT into tbl_users (user_uuid,lastname,firstname,email,gender,phone_number,date_registered, last_update_date) values(?,?,?,?,?,?,?,?)"
+                date_created  = "{0}".format(dt.datetime.now().timestamp())
+                date_updated =date_created
+                stmt  = self.Database.Execute(sql, (user.UUID, user.Lastname, user.Firstname, email, user.Gender,user.PhoneNumber, date_created,date_updated))
+                self.Database.Commit()
+                result  = user
+        return result
+
+    def Get(self, user_uuid: str):
         result  = None;
-        if(isinstance(user, User)):
-            if(self.Exists(user.Email) != True):
-                User.UUID  =  self.NextUUID;
-                sql  =  "INSERT into tbl_users values(?,?,?,?,?,?,?)";
-                date  =  "{0}".format(dt.datetime.now().timestamp());
-                stmt  =  self.Database.Execute(sql, (user.UUID, user.Lastname, user.Firstname, user.Email, user.Gender,date,date ));            
-                self.Database.Commit();
-                result  =  user;
-        return result;
-
-    def Get(self, user_uuid: str):        
-        result  =  None;
-        if(type(user_uuid) == str):
-            
-            stmt  =  self.Database.Execute("SELECT *FROM tbl_users WHERE (user_uuid=? OR email==?)", (user_uuid, user_uuid));
-            if(stmt.RowCount > 0):
-                record  =  stmt.Next;
-                if(record != None):
+        if type(user_uuid) == str:
+            email = user_uuid.lower().strip()
+            stmt  = self.Database.Execute("SELECT *FROM {0} WHERE user_uuid=? OR email=?".format(self.Name), (user_uuid, email));
+            if stmt.RowCount > 0:
+                record  = stmt.Next;
+                if record is not None:
                     result  = self._ParseRecord(record);
         return result;
 
@@ -64,9 +67,10 @@ class UserAccount(Respository):
             user.Lastname       =  record.Get("lastname");
             user.Gender         =  record.Get("gender");
             user.Email          =  record.Get("email");
-            user.DateRegistered =  dt.datetime.fromtimestamp(float(record.Get("date_registered")));           
-            
-        return user; 
+            user.PhoneNumber    =  record.Get('phone_number')
+            user.DateRegistered =  dt.datetime.fromtimestamp(float(record.Get("date_registered")));
+
+        return user;
 
     @property
     def Users(self):
@@ -87,8 +91,8 @@ class UserAccount(Respository):
         if(isinstance(user, User)):
             if(self.Exists(user.UUID)):
                 if(self.Database != None):
-                    stmt  =  self.Database.Execute("UPDATE tbl_users SET email=?, firstname=?, gender=?,lastname=?,last_update_date=? WHERE (user_uuid=?)",
-                                                    (user.Email,user.Firstname, user.Gender, user.Lastname, dt.datetime.now().timestamp(), user.UUID));
+                    stmt  =  self.Database.Execute("UPDATE tbl_users SET email=?, firstname=?, gender=?, phone_number=?,lastname=?,last_update_date=? WHERE (user_uuid=?)",
+                                                    (user.Email,user.Firstname, user.Gender, user.PhoneNumber, user.Lastname, dt.datetime.now().timestamp(), user.UUID));
                     status  = True;
                     self.Database.Commit();
         return status;
@@ -101,7 +105,7 @@ class UserAccount(Respository):
                 self.Database.Commit();
                 status  =  True;
         return status;
-    
+
 
     def Find(self, search_str: str):
         users =  list();
@@ -118,14 +122,14 @@ class UserAccount(Respository):
                     user  =  self._ParseRecord(record);
                     if(user != None):
                         users.append(user);
-                    record  =  stmt.Next;    
+                    record  =  stmt.Next;
         return users;
-    
 
-   
+
+
 
 if(__name__ == "__main__"):
-    account     =  UserAccount(db =  Database(name  =  'rgb.db'));
+    account     = UserRepository(db =  Database(name  ='../server/dbtest.db'));
     account.Create(User(firstname= "Obaro", lastname ="Johnson", gender = GenderType.MALE, email="johnson.obaro"));
     account.Create(User(firstname= "Will", lastname ="Johnson", gender = GenderType.MALE, email="johnson.obaro@hotmail.com"));
     account.Create(User(firstname= "Obaro", lastname ="Johnson", gender = GenderType.MALE, email="johnson.obaro"));
@@ -140,17 +144,17 @@ if(__name__ == "__main__"):
     print("List");
     for user in users:
         print("user ={0} ,email ={1}".format(user.UUID, user.Email));
-  
-   
+
+
     users  =  account.Find("johnson");
     print(users);
     if(users != None):
-       print(len(users));   
-  
+       print(len(users));
+
     account.Clear();
     account.Drop();
     account.Database.Close();
 
-    
-   
-    
+
+
+
