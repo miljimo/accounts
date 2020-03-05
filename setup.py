@@ -9,12 +9,17 @@ if os.path.exists(license_file) is True:
         license_note = file.read();
 
 setup(name="accounts",
-      packages=["accounts", "accounts.server", "accounts.data", "accounts.repositories", 'accounts.databases', 'accounts.services', 'accounts.validators'],
+      packages=["accounts", "accounts.server",
+                "accounts.data",
+                "accounts.repositories",
+                'accounts.databases',
+                'accounts.services',
+                'accounts.validators'],
       version='1.0.12032020',
       description="beef_server implementation",
       url="https://github.com/miljimo/PyNodeGraph.git",
       author_email="johnson.obaro@hotmail.com",
       author="Obaro I. Johnson",
       license='Apache Licence 2.0',
-      install_requires=["mpi4py>=2.0", 'Flask'],
+      install_requires=['Flask'],
       classifiers=["Target Users : Developers"])

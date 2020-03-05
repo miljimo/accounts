@@ -1,9 +1,11 @@
 import datetime as dt
 import copy
-from accounts.data.userlevel import UserLevel, AdminLevelType,AdminLevelStatusType
-from accounts.databases.database import Database
-from accounts.repositories.repository import Repository
-from accounts.databases.sqlresult import SQLResult
+from accounts.data.userlevel            import UserLevel
+from accounts.data.userlevel            import AdminLevelType
+from accounts.data.userlevel            import AdminLevelStatusType
+from accounts.databases.database        import Database
+from accounts.repositories.repository   import Repository
+from accounts.databases.sqlresult       import SQLResult
 
 
 class AdministratorLevelRepository(Repository):

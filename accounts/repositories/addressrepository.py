@@ -1,8 +1,8 @@
 import datetime as dt
-from accounts.repositories.repository import Repository
-from accounts.data.address import Address
-from accounts.databases.database import Database
-from accounts.databases.sqlresult import SQLResult
+from accounts.repositories.repository   import Repository
+from accounts.data.address              import Address
+from accounts.databases.database        import Database
+from accounts.databases.sqlresult       import SQLResult
 
 
 class AddressRepository(Repository):
